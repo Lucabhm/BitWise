@@ -5,8 +5,9 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Cloud, Mail, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth";
+import { analytics } from "@/lib/analytics";
 
 export function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -26,11 +27,20 @@ export function LoginPage() {
     signUpWithEmail,
   } = useAuth();
 
+  // Track page view when login/signup mode changes
+  useEffect(() => {
+    analytics.trackPageView(isLogin ? "login_page" : "signup_page");
+  }, [isLogin]);
+
   const handleSocialLogin = async (
     provider: "google" | "microsoft" | "linkedin"
   ) => {
     setSocialLoading(provider);
     setError(null);
+
+    // Track social login attempt
+    analytics.trackSocialLoginAttempt(provider);
+
     try {
       if (provider === "google") {
         await signInWithGoogle();
@@ -39,6 +49,9 @@ export function LoginPage() {
       } else if (provider === "linkedin") {
         await signInWithLinkedIn();
       }
+
+      // Track successful login
+      analytics.trackLogin(provider);
       // Redirect will happen automatically via AuthContext
     } catch (err: any) {
       let errorMessage =
@@ -62,6 +75,10 @@ export function LoginPage() {
         }
       }
 
+      // Track error
+      analytics.trackSocialLoginError(provider, errorMessage);
+      analytics.trackError("social_login", errorMessage);
+
       setError(errorMessage);
       setSocialLoading(null);
     }
@@ -75,8 +92,10 @@ export function LoginPage() {
     try {
       if (isLogin) {
         await signInWithEmail(email, password);
+        analytics.trackLogin("email");
       } else {
         await signUpWithEmail(email, password, { name, company });
+        analytics.trackSignup("email");
       }
       // Redirect will happen automatically via AuthContext
     } catch (err: any) {
@@ -105,9 +124,20 @@ export function LoginPage() {
       }
 
       setError(errorMessage);
+      analytics.trackError("email_auth", errorMessage);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleToggleMode = () => {
+    const newMode = !isLogin;
+    setIsLogin(newMode);
+    setError(null);
+    analytics.trackButtonClick(
+      newMode ? "switch_to_login" : "switch_to_signup",
+      "login_page"
+    );
   };
 
   return (
@@ -313,10 +343,7 @@ export function LoginPage() {
               {isLogin ? "Noch kein Konto?" : "Bereits ein Konto?"}
             </span>{" "}
             <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-              }}
+              onClick={handleToggleMode}
               className="text-[#004AAD] hover:text-[#0066CC] transition-colors"
             >
               {isLogin ? "Jetzt registrieren" : "Anmelden"}

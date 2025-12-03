@@ -12,6 +12,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { LogOut, User, Settings } from "lucide-react";
+import { analytics } from "@/lib/analytics";
 
 export function UserProfile() {
   const { user, signOut } = useAuthContext();
@@ -21,15 +22,19 @@ export function UserProfile() {
   // Get user initials for avatar fallback
   const getInitials = () => {
     if (user.user_metadata?.name) {
-      const names = user.user_metadata.name.split(' ');
-      return names.map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+      const names = user.user_metadata.name.split(" ");
+      return names
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
-    return user.email?.[0].toUpperCase() || 'U';
+    return user.email?.[0].toUpperCase() || "U";
   };
 
   // Get display name
   const getDisplayName = () => {
-    return user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+    return user.user_metadata?.name || user.email?.split("@")[0] || "User";
   };
 
   // Get avatar URL
@@ -45,21 +50,33 @@ export function UserProfile() {
     return null;
   };
 
+  const handleSignOut = async () => {
+    analytics.trackLogout();
+    await signOut();
+  };
+
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (open) analytics.trackProfileMenuOpen();
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={getAvatarUrl() || undefined} alt={getDisplayName()} />
+            <AvatarImage
+              src={getAvatarUrl() || undefined}
+              alt={getDisplayName()}
+            />
             <AvatarFallback className="bg-gradient-to-br from-[#004AAD] to-[#00C9A7] text-white">
               {getInitials()}
             </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        className="w-64 bg-white shadow-lg border border-gray-200" 
-        align="end" 
+      <DropdownMenuContent
+        className="w-64 bg-white shadow-lg border border-gray-200"
+        align="end"
         forceMount
         sideOffset={8}
       >
@@ -74,17 +91,25 @@ export function UserProfile() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-gray-200" />
-        <DropdownMenuItem className="cursor-pointer py-2.5 text-[#2F2F2F] hover:bg-[#F5F7FA] focus:bg-[#F5F7FA] focus:text-[#2F2F2F]">
+        <DropdownMenuItem
+          className="cursor-pointer py-2.5 text-[#2F2F2F] hover:bg-[#F5F7FA] focus:bg-[#F5F7FA] focus:text-[#2F2F2F]"
+          onClick={() =>
+            analytics.trackButtonClick("view_profile", "profile_menu")
+          }
+        >
           <User className="mr-3 h-4 w-4" />
           <span className="text-sm">Profil anzeigen</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer py-2.5 text-[#2F2F2F] hover:bg-[#F5F7FA] focus:bg-[#F5F7FA] focus:text-[#2F2F2F]">
+        <DropdownMenuItem
+          className="cursor-pointer py-2.5 text-[#2F2F2F] hover:bg-[#F5F7FA] focus:bg-[#F5F7FA] focus:text-[#2F2F2F]"
+          onClick={() => analytics.trackButtonClick("settings", "profile_menu")}
+        >
           <Settings className="mr-3 h-4 w-4" />
           <span className="text-sm">Einstellungen</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-gray-200" />
-        <DropdownMenuItem 
-          onClick={signOut} 
+        <DropdownMenuItem
+          onClick={handleSignOut}
           className="cursor-pointer py-2.5 text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-600"
         >
           <LogOut className="mr-3 h-4 w-4" />
