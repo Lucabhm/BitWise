@@ -9,13 +9,32 @@ import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
 import { LoginPage } from "@/components/LoginPage";
 import { LandingPage } from "@/components/LandingPage";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthProvider, useAuthContext } from "@/lib/AuthContext";
 
-export default function App() {
-  const [currentView, setCurrentView] = useState<"website" | "login" | "landing">("landing");
+function AppContent() {
+  const [currentView, setCurrentView] = useState<
+    "website" | "login" | "landing"
+  >("website");
+  const { user, loading } = useAuthContext();
 
-  if (currentView === "login") {
+  // Redirect to website after login
+  useEffect(() => {
+    if (user && currentView === "login") {
+      setCurrentView("website");
+    }
+  }, [user, currentView]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004AAD]"></div>
+      </div>
+    );
+  }
+
+  if (currentView === "login" && !user) {
     return (
       <>
         <LoginPage />
@@ -47,23 +66,25 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation Buttons */}
-      <div className="fixed top-6 right-6 z-50 flex gap-2">
-        <Button
-          onClick={() => setCurrentView("landing")}
-          className="bg-white text-[#004AAD] hover:bg-gray-50 shadow-lg"
-        >
-          Landing Page
-        </Button>
-        <Button
-          onClick={() => setCurrentView("login")}
-          className="bg-white text-[#004AAD] hover:bg-gray-50 shadow-lg"
-        >
-          Anmelden
-        </Button>
-      </div>
-      
-      <Hero />
+      {/* Navigation Buttons - Only show if not logged in or for demo purposes */}
+      {!user && (
+        <div className="fixed top-6 right-6 z-50 flex gap-2">
+          <Button
+            onClick={() => setCurrentView("landing")}
+            className="bg-white text-[#004AAD] hover:bg-gray-50 shadow-lg"
+          >
+            Landing Page
+          </Button>
+          <Button
+            onClick={() => setCurrentView("login")}
+            className="bg-white text-[#004AAD] hover:bg-gray-50 shadow-lg"
+          >
+            Anmelden
+          </Button>
+        </div>
+      )}
+
+      <Hero onLoginClick={() => setCurrentView("login")} />
       <Services />
       <CaseStudies />
       <TrustSection />
@@ -71,5 +92,13 @@ export default function App() {
       <ContactSection />
       <Footer />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
